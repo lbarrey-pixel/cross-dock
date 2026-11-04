@@ -1,0 +1,40 @@
+# Postgres 16 com o esquema, o seed de demonstração e (perfil `teste`) os testes de RLS.
+#   docker compose up -d db          # sobe e aplica stub + migration + seed
+#   docker compose run --rm rls      # roda supabase/tests/rls.sql
+# O stub só imita o mínimo do Supabase (schema auth, papéis). As edge functions e o Auth
+# precisam do Supabase local: veja a seção "Como rodar" do README (`supabase start`).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-crossdock}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./supabase/tests/stub_supabase.sql:/docker-entrypoint-initdb.d/00_stub_supabase.sql:ro
+      - ./supabase/migrations/0001_schema.sql:/docker-entrypoint-initdb.d/10_schema.sql:ro
+      - ./supabase/seed.sql:/docker-entrypoint-initdb.d/20_seed.sql:ro
+      - dados:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-crossdock}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  rls:
+    profiles: ["teste"]
+    image: postgres:16-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - ./supabase/tests/rls.sql:/rls.sql:ro
+    command: >
+      psql -v ON_ERROR_STOP=1 -h db -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-crossdock} -f /rls.sql
+
+volumes:
+  dados:

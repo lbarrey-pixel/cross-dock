@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, Menlo, monospace;
+  --color-navy: #0b1f3a;
+  --color-azul: #1f6feb;
+  --color-azul-50: #eaf2fe;
+  --color-verde: #3f8f24;
+  --color-verde-50: #eaf4e4;
+  --color-ambar: #b7791f;
+  --color-ambar-50: #fdf5e6;
+  --color-rose: #c93a3a;
+  --color-rose-50: #fdecec;
+  --color-fundo: #f6f7f9;
+  --color-linha: #e3e7ed;
+  --color-tinta: #0b1f3a;
+  --color-tinta2: #4a5568;
+  --color-tinta3: #8592a6;
+}
+
+html, body, #root { height: 100%; }
+/* Sem "puxar para atualizar": um deslize no celular não recarrega a página e não perde o trabalho. */
+html, body { overscroll-behavior-y: none; }
+body {
+  margin: 0;
+  background: var(--color-fundo);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.card { background: #fff; border: 1px solid var(--color-linha); border-radius: 14px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  border-radius: 10px; padding: .55rem .95rem; font-weight: 500; font-size: .9rem;
+  border: 1px solid var(--color-linha); background: #fff; color: var(--color-tinta);
+  transition: background .15s, border-color .15s; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: #c5ccd8; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primario { background: var(--color-navy); color: #fff; border-color: var(--color-navy); }
+.btn-primario:hover { background: #142e52; }
+.btn-azul { background: var(--color-azul); color: #fff; border-color: var(--color-azul); }
+.btn-perigo { color: var(--color-rose); }
+.btn-grande { padding: .9rem 1.1rem; font-size: 1rem; border-radius: 12px; }
+.campo {
+  width: 100%; border: 1px solid var(--color-linha); border-radius: 10px; padding: .6rem .75rem;
+  font: inherit; font-size: .95rem; background: #fff; color: inherit;
+}
+.campo:focus, .btn:focus-visible { outline: 2px solid var(--color-azul); outline-offset: 1px; }
+.rotulo { font-size: .8rem; color: var(--color-tinta2); font-weight: 500; display: block; margin-bottom: .3rem; }
+.tabela { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.tabela th { text-align: left; font-weight: 500; color: var(--color-tinta3); font-size: .78rem; padding: .55rem .75rem; border-bottom: 1px solid var(--color-linha); }
+.tabela td { padding: .65rem .75rem; border-bottom: 1px solid var(--color-linha); vertical-align: top; }
+.tabela tr:last-child td { border-bottom: 0; }

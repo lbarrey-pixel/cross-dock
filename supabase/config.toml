@@ -1,0 +1,35 @@
+# Configuração do Supabase local (`supabase start`). Só o necessário; o resto usa os padrões da CLI.
+project_id = "crossdock"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+# As functions fazem a própria autenticação (papel do usuário ou x-cron-secret), então o gateway não exige JWT:
+# o agendador e o redirecionamento do OAuth do ERP não mandam um.
+[functions.erp-oauth]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.erp-sync]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.casamento-sugerir]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.transportadora]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.sefaz]
+verify_jwt = false
+import_map = "./functions/deno.json"

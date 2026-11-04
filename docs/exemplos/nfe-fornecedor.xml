@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe>
+    <infNFe Id="NFe35260111122233000183550010000000011000000017" versao="4.00">
+      <ide><nNF>1</nNF><serie>1</serie><dhEmi>2026-01-10T09:00:00-03:00</dhEmi></ide>
+      <emit><CNPJ>11122233000183</CNPJ><xNome>FORNECEDOR DEMO LTDA</xNome></emit>
+      <dest><CNPJ>12345678000195</CNPJ></dest>
+      <det nItem="1">
+        <prod><cProd>4380000</cProd><xProd>JOGO CHAVES COMBINADAS 4380000</xProd><NCM>82041100</NCM><uCom>UN</uCom><qCom>2.0000</qCom><vUnCom>300.00</vUnCom></prod>
+      </det>
+      <det nItem="2">
+        <prod><cProd>FT-352</cProd><xProd>FITA CREPE ALTA PERF VERDE 48X40</xProd><NCM>48142000</NCM><uCom>UN</uCom><qCom>24.0000</qCom><vUnCom>12.00</vUnCom></prod>
+      </det>
+      <total><ICMSTot><vNF>888.00</vNF></ICMSTot></total>
+    </infNFe>
+  </NFe>
+</nfeProc>
