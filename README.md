@@ -1,51 +1,53 @@
 # CrossDock
 
-Recebimento por chave de NF-e, casamento com pedidos de venda, consolidação, NF de saída e expedição para um centro de distribuição (cross-docking) que opera para um revendedor B2B.
+Receiving by NF-e (Brazilian electronic invoice) access key, matching to sales orders, consolidation, outgoing invoice, and shipping for a distribution center (cross-docking) that operates for a B2B reseller.
 
-![CI](https://img.shields.io/badge/ci-github%20actions-lightgrey) ![licença](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)
+![CI](https://img.shields.io/badge/ci-github%20actions-lightgrey) ![license](https://img.shields.io/badge/license-MIT-blue)
 
-## O problema
+> This is a portfolio sample of a system running in production for a client. Brand and data here are fictional, and the full production code is private by contract.
 
-Um revendedor B2B compra de vários fornecedores e entrega ao cliente final sem manter estoque próprio: a mercadoria passa por um centro de distribuição (CD) parceiro, que recebe, confere, junta o que pertence a cada pedido de venda e despacha. O que dava errado no dia a dia:
+## The problem
 
-- a NF do fornecedor chega em papel, e a descrição do item quase nunca é a do pedido de venda;
-- o CD não sabe se já tem tudo de um pedido, e o operador não sabe o que já chegou;
-- a NF de saída é emitida no ERP sem conferir peso e volumes com o que foi realmente embalado;
-- o frete cobrado só aparece semanas depois, e ninguém compara com o que foi cotado.
+A B2B reseller buys from several suppliers and delivers to the end customer without holding its own inventory: the goods pass through a partner distribution center (CD), which receives them, checks them, groups what belongs to each sales order, and ships. What went wrong day to day:
 
-O CrossDock liga essas pontas. O CD lê o código de barras da DANFE, o sistema busca o XML oficial na SEFAZ, sugere a que pedido cada item pertence, e o operador só confirma. Daí em diante o fluxo é guiado: consolidar, separar, medir os volumes, faturar no ERP, conferir a NF contra a volumetria, expedir lendo o DACTE e, por fim, comparar frete cotado com o cobrado no CT-e.
+- the supplier invoice arrives on paper, and the item description is almost never the one on the sales order;
+- the CD does not know whether it already has everything for an order, and the operator does not know what has already arrived;
+- the outgoing invoice is issued in the ERP without checking weight and volumes against what was actually packed;
+- the freight charged shows up only weeks later, and nobody compares it with what was quoted.
 
-## Fluxo
+CrossDock connects these loose ends. The CD reads the DANFE (printable NF-e document) barcode. An edge function fetches the official XML from SEFAZ (the Brazilian state tax authority) using the company's A1 certificate (a file-based Brazilian digital certificate), including the signed operation awareness event that unlocks the full XML. The system suggests which order each item belongs to, and the operator only confirms. From there the flow is guided: consolidate, pick, measure the volumes, invoice in the ERP, check the invoice against the volume measurements, ship by reading the DACTE (printable CT-e document), and finally compare quoted freight with the freight charged on the CT-e (electronic freight document).
+
+## Flow
 
 ```
-código de barras da DANFE ─▶ SEFAZ (XML oficial, ciência da operação) ─▶ recebimento + itens
-        ─▶ casamento (regras + LLM opcional) ─▶ operador confirma ─▶ consolidação ─▶ CD separa e mede
-        ─▶ ERP fatura ─▶ NF de saída conferida × volumetria ─▶ expedição (DACTE) ─▶ CT-e baixado da SEFAZ ─▶ frete cotado × cobrado
+DANFE barcode ─▶ SEFAZ (official XML, operation awareness) ─▶ receiving + items
+        ─▶ matching (rules + optional LLM) ─▶ operator confirms ─▶ consolidation ─▶ CD picks and measures
+        ─▶ ERP invoices ─▶ outgoing invoice checked × volume measurements ─▶ shipping (DACTE) ─▶ CT-e downloaded from SEFAZ ─▶ quoted freight × charged
 ```
 
-Dois papéis: `operador` (vende e fatura) e `cd` (equipe do centro de distribuição). O CD só vê um pedido depois que o operador abre a consolidação dele.
+Two roles: `operador` (sells and invoices) and `cd` (the distribution center team). The CD sees an order only after the operator opens its consolidation.
 
 ## Stack
 
-| Camada | Tecnologia |
+| Layer | Technology |
 | --- | --- |
-| Banco | PostgreSQL 16 / Supabase: 20 tabelas, 4 views, RPCs `security definer`, RLS por papel, `pg_cron` |
-| Funções | Supabase Edge Functions (Deno + TypeScript), `node-forge` para certificado A1 e XMLDSig |
-| Gateway | Node 22, `node:https` com mTLS (`sefaz-gw`) |
-| Web | React 19, TypeScript, Vite 8, Tailwind 4, supabase-js, react-router, recharts, `@zxing` (leitor de código de barras), WebXR (medição de volumes) |
-| Testes | `deno test`, Vitest, `node:test`, SQL com asserts (`supabase/tests/rls.sql`) |
-| Qualidade | oxlint, `tsc -b`, `deno lint`/`deno check`, GitHub Actions |
+| Database | PostgreSQL 16 / Supabase: 20 tables, 4 views, `security definer` RPCs, RLS by role, `pg_cron` |
+| Functions | Supabase Edge Functions (Deno + TypeScript), `node-forge` for the A1 certificate and XMLDSig |
+| Gateway | Node 22, `node:https` with mTLS (`sefaz-gw`) |
+| Web | React 19, TypeScript, Vite 8, Tailwind 4, supabase-js, react-router, recharts, `@zxing` (barcode reader), WebXR (volume measurement) |
+| Tests | `deno test`, Vitest, `node:test`, SQL with asserts (`supabase/tests/rls.sql`) |
+| Quality | oxlint, `tsc -b`, `deno lint`/`deno check`, GitHub Actions |
 
-## Como rodar
+## How to run
 
-### Só o banco (rápido)
+### Database only (quick)
 
 ```bash
-docker compose up -d db          # Postgres 16 com stub do Supabase, migration e seed
-docker compose run --rm rls      # policies e RPCs por papel (supabase/tests/rls.sql)
+docker compose up -d db          # Postgres 16 with a Supabase stub, migration, and seed
+docker compose run --rm rls      # policies and RPCs by role (supabase/tests/rls.sql)
 ```
 
-Sem Docker, com um Postgres 16 qualquer:
+Without Docker, on any Postgres 16:
 
 ```bash
 createdb crossdock
@@ -54,74 +56,60 @@ for f in supabase/tests/stub_supabase.sql supabase/migrations/0001_schema.sql su
 done
 ```
 
-### Aplicação completa (Supabase local)
+### Full application (local Supabase)
 
-Precisa da [CLI do Supabase](https://supabase.com/docs/guides/local-development) e de Docker.
+Requires the [Supabase CLI](https://supabase.com/docs/guides/local-development) and Docker.
 
 ```bash
-supabase start                                   # aplica migration e seed (supabase/config.toml)
+supabase start                                   # applies the migration and seed (supabase/config.toml)
 cp supabase/functions/.env.example supabase/functions/.env
 supabase functions serve --env-file supabase/functions/.env
 
 cd web
-cp .env.example .env                             # URL e anon key de `supabase status`
+cp .env.example .env                             # URL and anon key from `supabase status`
 npm ci && npm run dev
 ```
 
-O seed cria `operador@example.com` e `cd@example.com` (senha de desenvolvimento `demo-crossdock`) e dois pedidos de demonstração. Em Configurações, o operador cadastra credenciais do ERP e da transportadora, o certificado A1 e, opcionalmente, um LLM. Sem essas integrações dá para percorrer o fluxo inteiro com os pedidos de demonstração: no recebimento, use “Enviar o XML da nota” com [`docs/exemplos/nfe-fornecedor.xml`](docs/exemplos/nfe-fornecedor.xml), que traz itens parecidos com os do pedido #990001.
+The seed creates `operador@example.com` and `cd@example.com` (development password `demo-crossdock`) and two demo orders. In Configurações (Settings), the operator registers the ERP and carrier credentials, the A1 certificate, and, optionally, an LLM. Without those integrations you can go through the whole flow with the demo orders: on receiving, use “Enviar o XML da nota” (“Upload the invoice XML”) with [`docs/exemplos/nfe-fornecedor.xml`](docs/exemplos/nfe-fornecedor.xml), which has items similar to those on order #990001.
 
-### Testes
+### Tests
 
 ```bash
-cd supabase/functions && deno task lint && deno task check && deno task test   # 29 testes
-cd web && npm run lint && npx tsc -b && npm test && npm run build               # 11 testes
-cd sefaz-gw && npm test                                                         # 3 testes
+cd supabase/functions && deno task lint && deno task check && deno task test   # 29 tests
+cd web && npm run lint && npx tsc -b && npm test && npm run build               # 11 tests
+cd sefaz-gw && npm test                                                         # 3 tests
 docker compose run --rm rls                                                     # SQL
 ```
 
-## Estrutura
+## Structure
 
-| Caminho | O que é |
+| Path | What it is |
 | --- | --- |
-| `supabase/migrations/0001_schema.sql` | esquema completo: tabelas, views, RPCs, RLS, grants, storage, agendamentos |
-| `supabase/seed.sql` | dados de desenvolvimento (usuários, config, endereços, pedidos de demonstração) |
-| `supabase/tests/` | stub do Supabase para Postgres comum e testes de RLS/RPC |
-| `supabase/functions/_shared/` | CORS e autorização, cliente do ERP, pontuação do casamento, porta do LLM |
-| `supabase/functions/sefaz/` | `lib.ts` (puro: chave com DV, certificado, XMLDSig, SOAP, CT-e) e `index.ts` (ações) |
-| `supabase/functions/erp-oauth`, `erp-sync` | autorização OAuth2 e importação de pedidos / coleta da NF de saída |
-| `supabase/functions/casamento-sugerir` | sugestão de casamentos |
-| `supabase/functions/transportadora` | cotação e rastreio na API da transportadora |
-| `sefaz-gw/` | gateway mTLS para a SEFAZ |
-| `web/` | site (PWA) do operador (`/operador/*`) e do CD (`/cd/*`) |
-| `docs/adr/` | decisões de arquitetura |
+| `supabase/migrations/0001_schema.sql` | complete schema: tables, views, RPCs, RLS, grants, storage, schedules |
+| `supabase/seed.sql` | development data (users, config, addresses, demo orders) |
+| `supabase/tests/` | Supabase stub for ordinary Postgres and RLS/RPC tests |
+| `supabase/functions/_shared/` | CORS and authorization, ERP client, matching score, LLM port |
+| `supabase/functions/sefaz/` | `lib.ts` (pure: access key with check digit, certificate, XMLDSig, SOAP, CT-e) and `index.ts` (actions) |
+| `supabase/functions/erp-oauth`, `erp-sync` | OAuth2 authorization and sales-order import / outgoing-invoice collection |
+| `supabase/functions/casamento-sugerir` | match suggestions |
+| `supabase/functions/transportadora` | quoting and tracking on the carrier API |
+| `sefaz-gw/` | mTLS gateway for SEFAZ |
+| `web/` | site (PWA) for the operator (`/operador/*`) and the CD (`/cd/*`) |
+| `docs/adr/` | architecture decisions |
 
-## Decisões
+## Decisions
 
-- [Assinatura XMLDSig à mão e gateway para o mTLS](docs/adr/0001-xmldsig-manual-e-gateway-mtls.md)
-- [Regras de negócio em RPCs `security definer`](docs/adr/0002-regras-em-rpcs-security-definer.md)
-- [Casamento explicável antes do LLM](docs/adr/0003-casamento-explicavel-antes-do-llm.md)
-- [Papéis via RLS](docs/adr/0004-papeis-via-rls.md)
+- [Hand-built XMLDSig and a gateway for mTLS](docs/adr/0001-hand-built-xmldsig-and-mtls-gateway.md)
+- [Business rules in `security definer` RPCs](docs/adr/0002-business-rules-in-security-definer-rpcs.md)
+- [Explainable matching before the LLM](docs/adr/0003-explainable-matching-before-the-llm.md)
+- [Roles via RLS](docs/adr/0004-roles-via-rls.md)
 
-Detalhes que valem citar:
+Details worth noting:
 
-- Chave de acesso NF-e/CT-e validada por dígito verificador módulo 11 no navegador, na função e no banco.
-- NF de saída conferida contra peso, volumes e destinatário antes de liberar a expedição.
-- O LLM é uma porta (`ProvedorLLM`): qualquer API de chat configurada por `LLM_API_URL`, `LLM_API_KEY` e `LLM_MODEL` (formato OpenAI ou semelhante), com adaptador fake nos testes. O texto da NF entra no prompt como dado e a resposta passa por um extrator estrito.
-- O cliente do ERP controla o ritmo por invocação e tenta no máximo 3 vezes em caso de limite de requisições. A API v3 do ERP Tiny/Olist serviu de exemplo para o contrato; os endereços vêm de `ERP_API_URL` e `ERP_AUTH_URL`.
-- Credenciais e tokens ficam em `integracoes_estado`, sem policy: nunca voltam para o navegador.
-
-> Versão de portfólio. O sistema roda em produção para um cliente; aqui marca e dados são fictícios, e o código em produção é privado por contrato.
-
-## English
-
-**CrossDock** is a cross-docking system: a distribution center receives supplier goods against NF-e (Brazilian e-invoice) access keys, matches them to customer sales orders, consolidates, checks the outgoing invoice against measured volumes and ships.
-
-- **Receiving**: the warehouse scans the DANFE barcode; an edge function fetches the official XML from the tax authority (SEFAZ) using the company's A1 certificate, including the signed "operation awareness" event that unlocks the full XML.
-- **Matching**: explainable scoring (model codes, token similarity, listing URL, past confirmations, hard exclusions) with an optional LLM tie-breaker behind a provider interface. The operator always confirms.
-- **Business rules live in Postgres**: `security definer` RPCs enforce quantities and state transitions; RLS and minimal grants separate the two roles (`operador`, `cd`).
-- **Outbound**: the ERP invoice is imported and checked against volumes and weight; shipping is blocked until it matches. CT-e documents are synced from SEFAZ to compare quoted vs. charged freight.
-- **Stack**: PostgreSQL 16 / Supabase, Deno edge functions, a small Node mTLS gateway, React 19 + Vite + Tailwind 4. Tests: Deno (29), Vitest (11), node:test (3) and SQL asserts for RLS.
-
-Run it: `docker compose up -d db && docker compose run --rm rls` for the database, or `supabase start` plus `supabase functions serve` plus `npm run dev` in `web/` for the full app (see the Portuguese section above).
-
-*Portfolio version. The system runs in production for a client; brand and data here are fictional, and the production code is private by contract.*
+- NF-e/CT-e access key validated by a modulo-11 check digit in the browser, in the function, and in the database.
+- Outgoing invoice checked against weight, volumes, and recipient before shipping is released.
+- Matching is an explainable score (model codes, token similarity, listing URL, past confirmations, hard exclusions), with an optional LLM tie-breaker behind a provider interface. The operator always confirms.
+- Business rules live in Postgres: `security definer` RPCs enforce quantities and state transitions; RLS and minimal grants separate the two roles (`operador`, `cd`).
+- The LLM is a port (`ProvedorLLM`): any chat API configured by `LLM_API_URL`, `LLM_API_KEY`, and `LLM_MODEL` (OpenAI format or similar), with a fake adapter in the tests. The invoice text goes into the prompt as data, and the response passes through a strict extractor.
+- The ERP client paces requests per invocation and retries at most 3 times when it hits a request limit. The Tiny/Olist ERP API v3 served as the example for the contract; the URLs come from `ERP_API_URL` and `ERP_AUTH_URL`.
+- Credentials and tokens stay in `integracoes_estado`, with no policy: they never return to the browser.

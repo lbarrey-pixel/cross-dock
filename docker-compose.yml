@@ -2,7 +2,7 @@
 #   docker compose up -d db          # sobe e aplica stub + migration + seed
 #   docker compose run --rm rls      # roda supabase/tests/rls.sql
 # O stub só imita o mínimo do Supabase (schema auth, papéis). As edge functions e o Auth
-# precisam do Supabase local: veja a seção "Como rodar" do README (`supabase start`).
+# precisam do Supabase local: veja a seção "How to run" do README (`supabase start`).
 services:
   db:
     image: postgres:16-alpine
